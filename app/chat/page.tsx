@@ -110,12 +110,48 @@ function YouTubeCard({ label, url, videoId }: { label: string; url: string; vide
   );
 }
 
+const SectionIcon = ({ name, className }: { name: "xukun" | "faahfaahin" | "ikhtilaf" | "gunaanad" | "tixraac"; className?: string }) => {
+  const size = 16;
+  const icons = {
+    xukun: (
+      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 3v18" /><path d="M6 6h12" />
+        <path d="M8 6v4l-2 4h4l2-4V6" /><path d="M16 6v4l-2 4h4l2-4V6" />
+      </svg>
+    ),
+    faahfaahin: (
+      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+        <path d="M8 7h8" /><path d="M8 11h6" />
+      </svg>
+    ),
+    ikhtilaf: (
+      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 4v6" /><path d="M8 14l4 6 4-6" />
+        <path d="M6 12h2" /><path d="M16 12h2" />
+      </svg>
+    ),
+    gunaanad: (
+      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" />
+      </svg>
+    ),
+    tixraac: (
+      <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+        <path d="M8 7h8" /><path d="M12 11v6" /><path d="m10 15 2 2 2-2" />
+      </svg>
+    ),
+  };
+  return icons[name];
+};
+
 function FatwaCard({ fatwa }: { fatwa: FatwaBlock }) {
   const sections = [
-    { key: "xukun",      icon: "⚖️",  title: "Xukunka",     color: "var(--primary)",        bg: "rgba(255,163,53,0.07)" },
-    { key: "faahfaahin", icon: "📖",  title: "Faahfaahin",  color: "var(--secondary)",      bg: "rgba(29,110,199,0.07)" },
-    { key: "ikhtilaf",   icon: "🔄",  title: "Ikhtilaaf",   color: "var(--green)",          bg: "rgba(16,185,129,0.06)" },
-    { key: "gunaanad",   icon: "✅",  title: "Gunaanad",    color: "var(--primary-bright)", bg: "rgba(255,184,92,0.06)" },
+    { key: "xukun",      icon: "xukun" as const,      title: "Xukunka",     color: "var(--primary)",        bg: "rgba(255,163,53,0.07)" },
+    { key: "faahfaahin", icon: "faahfaahin" as const, title: "Faahfaahin",  color: "var(--secondary)",      bg: "rgba(29,110,199,0.07)" },
+    { key: "ikhtilaf",   icon: "ikhtilaf" as const,   title: "Ikhtilaaf",   color: "var(--green)",          bg: "rgba(16,185,129,0.06)" },
+    { key: "gunaanad",   icon: "gunaanad" as const,   title: "Gunaanad",    color: "var(--primary-bright)", bg: "rgba(255,184,92,0.06)" },
   ] as const;
 
   const tixraacParsed = (fatwa.tixraac ?? []).map(parseTixraac);
@@ -128,7 +164,9 @@ function FatwaCard({ fatwa }: { fatwa: FatwaBlock }) {
         return (
           <div key={s.key} className="px-4 py-3.5 transition-all duration-200" style={{ background: s.bg, borderBottom: "1px solid var(--border)" }}>
             <div className="flex items-center gap-2 mb-1.5">
-              <span className="text-sm leading-none">{s.icon}</span>
+              <span className="flex-shrink-0" style={{ color: s.color }}>
+                <SectionIcon name={s.icon} />
+              </span>
               <span className="text-[10px] font-bold uppercase tracking-[0.12em]" style={{ color: s.color }}>{s.title}</span>
             </div>
             <p className="text-[13.5px] leading-[1.75] text-[var(--text)]">{val}</p>
@@ -139,7 +177,9 @@ function FatwaCard({ fatwa }: { fatwa: FatwaBlock }) {
       {tixraacParsed.length > 0 && (
         <div className="px-4 pt-3 pb-4 space-y-2.5" style={{ background: "rgba(255,255,255,0.015)" }}>
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs">📚</span>
+            <span className="flex-shrink-0 text-[var(--text-muted)]">
+              <SectionIcon name="tixraac" />
+            </span>
             <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">Tixraacyada</span>
           </div>
           {tixraacParsed.map((t, i) =>

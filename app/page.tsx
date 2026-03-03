@@ -1,485 +1,313 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { useEffect, useState } from "react";
 
-/* ─────────────────────────── Types ─────────────────────────── */
-interface FatwaSection {
-  xukunka: string;
-  faahfaahin: string;
-  ikhtilaaf: string;
-  gunaanad: string;
-  tixraac: string;
-  raw: string;
-}
-
-interface ChatMessage {
-  id: string;
-  role: "user" | "agent";
-  text: string;
-  response?: FatwaSection;
-  evidenceCount?: number;
-  outOfDomain?: boolean;
-  noEvidence?: boolean;
-  error?: string;
-  detail?: string;
-  timestamp: number;
-}
-
-interface HistoryItem {
-  id: string;
-  question: string;
-  timestamp: number;
-}
-
-/* ─────────────────────── Sidebar Icons ─────────────────────── */
-const IconMoon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-);
-const IconPlus = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-);
-const IconSend = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-);
-const IconBook = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-);
-const IconClock = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-);
-const IconMenu = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-);
-const IconX = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-);
-
-/* ───────────────────── Typing Dots ─────────────────────────── */
-function TypingDots() {
-  return (
-    <div className="flex items-center gap-1 px-4 py-3">
-      <div className="w-2 h-2 rounded-full bg-[var(--gold)] dot-1" />
-      <div className="w-2 h-2 rounded-full bg-[var(--gold)] dot-2" />
-      <div className="w-2 h-2 rounded-full bg-[var(--gold)] dot-3" />
-    </div>
-  );
-}
-
-/* ───────────────────── Section Badge ───────────────────────── */
-function FatwaBlock({ label, icon, color, content }: {
-  label: string; icon: string; color: string; content: string;
-}) {
-  if (!content) return null;
-  return (
-    <div className="mt-3 animate-fade-up" style={{ animationDelay: "0.1s" }}>
-      <div className="flex items-center gap-2 mb-1.5">
-        <span className="text-sm">{icon}</span>
-        <span className="text-[10px] font-bold tracking-wider uppercase" style={{ color }}>{label}</span>
-      </div>
-      <p className="text-sm leading-relaxed text-[var(--text-secondary)] pl-6">{content}</p>
-    </div>
-  );
-}
-
-/* ──────────────────── Example Questions ────────────────────── */
 const EXAMPLES = [
-  { q: "Injekshinku soonka ma jabiyaa?", icon: "💉" },
-  { q: "Qofku hadduu biyo ku galo afkiisa si aan ula kasdamin soonkiisa ma jabtaa?", icon: "💧" },
-  { q: "Dumarka ma isticmaali karaan kaniini si ay u soomaan?", icon: "💊" },
-  { q: "Qofka bukaan ah ee Ramadaanka soomin kari waaya maxuu yeelayaa?", icon: "🏥" },
-  { q: "Taraweexda Ramadaanka ma waajib baa mise sunno?", icon: "🕌" },
-  { q: "Sigaarka cabidda soonka ma jabisaa?", icon: "🚬" },
+  { q: "Injekshinku soonka ma jabiyaa?", icon: "💉", label: "Caafimaadka" },
+  { q: "Qofku hadduu biyo ku galo afkiisa si aan ula kasdamin soonkiisa ma jabtaa?", icon: "💧", label: "Biyaha" },
+  { q: "Dumarka ma isticmaali karaan kaniini si ay u soomaan?", icon: "💊", label: "Daawada" },
+  { q: "Qofka bukaan ah ee Ramadaanka soomin kari waaya maxuu yeelayaa?", icon: "🏥", label: "Bukaanka" },
+  { q: "Taraweexda Ramadaanka ma waajib baa mise sunno?", icon: "🕌", label: "Salaadda" },
+  { q: "Sigaarka cabidda soonka ma jabisaa?", icon: "🚬", label: "Sigaarka" },
 ];
 
-/* ══════════════════════════════════════════════════════════════
-   MAIN PAGE
-   ══════════════════════════════════════════════════════════════ */
-export default function Home() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [history, setHistory] = useState<HistoryItem[]>([]);
-  const chatEndRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+const FEATURES = [
+  {
+    icon: "🔍",
+    title: "Raadinta Caqliga leh",
+    desc: "AI-gu wuxuu isticmaalaa Gemini embeddings si uu kuu helo fatwa-da ugu dhow su'aashaada.",
+    color: "var(--secondary)",
+  },
+  {
+    icon: "📚",
+    title: "138 Fatwa Kaydsan",
+    desc: "Xogta waxaa laga soo qaaday culimada Soomaaliyeed oo la xaqiijiyay — Sh. Dirir, Sh. Umal, iyo qaar kale.",
+    color: "var(--primary)",
+  },
+  {
+    icon: "⚖️",
+    title: "Jawaab Qaab-dhismeed leh",
+    desc: "Jawaab kasta waxay ku dhisantahay: Xukunka, Faahfaahin, Ikhtilaaf, Gunaanad, iyo Tixraac.",
+    color: "var(--secondary)",
+  },
+  {
+    icon: "🛡️",
+    title: "Ammaansan & Dhexdhexaad",
+    desc: "Haddaan xog la helin, wuu diidayaa in uu ka jawaabo. Ma doorbido madhab gaar ah.",
+    color: "var(--primary)",
+  },
+];
 
-  const isLanding = messages.length === 0;
+const SCHOLARS = [
+  { name: "Sh. Maxamed Cumar Dirir", count: "90+" },
+  { name: "Sh. Maxamed Cabdi Umal", count: "30+" },
+  { name: "Culimo kale", count: "15+" },
+];
 
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
+function Particle({ delay, x, size, color }: { delay: number; x: number; size: number; color: string }) {
+  return (
+    <div
+      className="absolute rounded-full animate-float"
+      style={{
+        width: size,
+        height: size,
+        left: `${x}%`,
+        top: `${20 + Math.random() * 60}%`,
+        background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
+        animationDelay: `${delay}s`,
+        animationDuration: `${4 + Math.random() * 3}s`,
+      }}
+    />
+  );
+}
 
-  useEffect(() => {
-    const ta = textareaRef.current;
-    if (ta) {
-      ta.style.height = "auto";
-      ta.style.height = Math.min(ta.scrollHeight, 160) + "px";
-    }
-  }, [input]);
-
-  const sendMessage = async (q?: string) => {
-    const text = (q || input).trim();
-    if (!text || loading) return;
-
-    const userMsg: ChatMessage = {
-      id: `u-${Date.now()}`,
-      role: "user",
-      text,
-      timestamp: Date.now(),
-    };
-    setMessages((m) => [...m, userMsg]);
-    setInput("");
-    setLoading(true);
-
-    setHistory((h) => {
-      const exists = h.some((x) => x.question === text);
-      if (exists) return h;
-      return [{ id: `h-${Date.now()}`, question: text, timestamp: Date.now() }, ...h].slice(0, 20);
-    });
-
-    try {
-      const res = await fetch("/api/ask", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: text }),
-      });
-      const data = await res.json();
-
-      const agentMsg: ChatMessage = {
-        id: `a-${Date.now()}`,
-        role: "agent",
-        text: "",
-        response: data.success ? data.response : undefined,
-        evidenceCount: data.evidenceCount,
-        outOfDomain: data.outOfDomain,
-        noEvidence: data.noEvidence,
-        error: data.error,
-        detail: data.detail,
-        timestamp: Date.now(),
-      };
-      setMessages((m) => [...m, agentMsg]);
-    } catch {
-      setMessages((m) => [
-        ...m,
-        {
-          id: `e-${Date.now()}`,
-          role: "agent",
-          text: "",
-          error: "Khalad ka dhacay. Internet-ka hubi oo dib u isku day.",
-          timestamp: Date.now(),
-        },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const startNewChat = () => {
-    setMessages([]);
-    setInput("");
-    textareaRef.current?.focus();
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  };
+export default function LandingPage() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="min-h-screen gradient-dark">
+      {/* ═══ HERO ═══ */}
+      <section className="relative overflow-hidden min-h-screen flex items-center justify-center">
+        <div className="absolute inset-0 hero-glow" />
+        {mounted && Array.from({ length: 12 }).map((_, i) => (
+          <Particle
+            key={i}
+            delay={i * 0.4}
+            x={8 + (i * 7.5)}
+            size={4 + Math.random() * 8}
+            color={i % 2 === 0 ? "rgba(255,163,53,0.15)" : "rgba(29,110,199,0.12)"}
+          />
+        ))}
 
-      {/* ════════════ SIDEBAR ════════════ */}
-      <aside
-        className={`${sidebarOpen ? "w-72" : "w-0"} flex-shrink-0 transition-all duration-300 overflow-hidden`}
-        style={{ background: "var(--bg-sidebar)", borderRight: sidebarOpen ? "1px solid var(--border)" : "none" }}
-      >
-        <div className="flex flex-col h-full w-72">
-          {/* Sidebar header */}
-          <div className="p-4 flex items-center justify-between" style={{ borderBottom: "1px solid var(--border)" }}>
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg gradient-gold flex items-center justify-center animate-pulse-ring">
-                <IconMoon />
-              </div>
-              <div>
-                <h1 className="text-sm font-bold gradient-text">Fatwa Agent</h1>
-                <p className="text-[10px] text-[var(--text-muted)]">Ramadan Fiqh AI</p>
-              </div>
-            </div>
-            <button onClick={() => setSidebarOpen(false)} className="p-1.5 rounded-md text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-card-hover)] transition-colors">
-              <IconX />
-            </button>
-          </div>
+        {/* Decorative rings */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full border border-[rgba(29,110,199,0.05)] animate-rotate-slow pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full border border-[rgba(255,163,53,0.03)] animate-rotate-slow pointer-events-none" style={{ animationDirection: "reverse", animationDuration: "30s" }} />
 
-          {/* New chat button */}
-          <div className="p-3">
-            <button
-              onClick={startNewChat}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-[1.02]"
-              style={{ border: "1px solid var(--border-hover)", color: "var(--text-secondary)" }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--gold-dim)"; e.currentTarget.style.color = "var(--gold)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border-hover)"; e.currentTarget.style.color = "var(--text-secondary)"; }}
-            >
-              <IconPlus /> Su&apos;aal Cusub
-            </button>
-          </div>
-
-          {/* Info card */}
-          <div className="px-3 mb-3">
-            <div className="rounded-lg p-3 glass">
-              <div className="flex items-center gap-2 mb-2">
-                <IconBook />
-                <span className="text-xs font-semibold text-[var(--gold)]">Xogta</span>
-              </div>
-              <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
-                138 fatwa oo laga soo qaaday culimada Soomaaliyeed. Waxaa ku jira Sh. Maxamed Cumar Dirir, Sh. Maxamed Cabdi Umal, iyo qaar kale.
-              </p>
-              <div className="flex items-center gap-1.5 mt-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-[var(--green)]" />
-                <span className="text-[10px] text-[var(--green)]">Nidaamku waa shaqaynayaa</span>
-              </div>
-            </div>
-          </div>
-
-          {/* History */}
-          <div className="flex-1 overflow-y-auto px-3">
-            <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2 px-1">Taariikhda</p>
-            {history.length === 0 ? (
-              <p className="text-[11px] text-[var(--text-muted)] px-1 italic">Wali su&apos;aal la weydiin.</p>
-            ) : (
-              <div className="space-y-1">
-                {history.map((h) => (
-                  <button
-                    key={h.id}
-                    onClick={() => sendMessage(h.question)}
-                    className="w-full text-left px-2.5 py-2 rounded-lg text-[11px] text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] hover:text-[var(--text)] transition-all duration-150 animate-slide-in truncate flex items-center gap-2"
-                  >
-                    <IconClock />
-                    <span className="truncate">{h.question}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Sidebar footer */}
-          <div className="p-3" style={{ borderTop: "1px solid var(--border)" }}>
-            <div className="flex items-center gap-2 px-1">
-              <span className="text-[10px] text-[var(--text-muted)]">Fatwa Agent v1.0</span>
-              <span className="text-[8px] text-[var(--text-muted)]">·</span>
-              <span className="text-[10px] text-[var(--text-muted)]">Memvid + Gemini</span>
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      {/* ════════════ MAIN CONTENT ════════════ */}
-      <main className="flex-1 flex flex-col h-screen overflow-hidden islamic-pattern">
-
-        {/* Top bar */}
-        <header className="flex items-center justify-between px-4 py-3 glass" style={{ borderBottom: "1px solid var(--border)" }}>
-          <div className="flex items-center gap-3">
-            {!sidebarOpen && (
-              <button onClick={() => setSidebarOpen(true)} className="p-1.5 rounded-md text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-card-hover)] transition-colors">
-                <IconMenu />
-              </button>
-            )}
-            <div className="flex items-center gap-2">
-              {!sidebarOpen && <div className="w-6 h-6 rounded-md gradient-gold flex items-center justify-center"><IconMoon /></div>}
-              <span className="text-sm font-semibold text-[var(--text)]">
-                {isLanding ? "Su'aalaha Fiqhiga Ramadaanka" : "Wadahadal"}
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] px-2.5 py-1 rounded-full font-medium" style={{ background: "var(--gold-glow)", color: "var(--gold)", border: "1px solid rgba(212,168,83,0.2)" }}>
-              Ramadan Fiqh
-            </span>
-          </div>
-        </header>
-
-        {/* Chat area */}
-        <div className="flex-1 overflow-y-auto">
-          {isLanding ? (
-            /* ──────── LANDING PAGE ──────── */
-            <div className="flex flex-col items-center justify-center h-full px-4 animate-fade-up">
-              <div className="max-w-2xl w-full text-center space-y-8">
-                {/* Hero */}
-                <div className="space-y-4">
-                  <div className="w-20 h-20 mx-auto rounded-2xl gradient-gold flex items-center justify-center glow-gold animate-pulse-ring">
-                    <span className="text-3xl">☽</span>
-                  </div>
-                  <h2 className="text-3xl font-bold gradient-text">Su&apos;aal Fiqhi Weydii</h2>
-                  <p className="text-sm text-[var(--text-secondary)] max-w-md mx-auto leading-relaxed">
-                    Nidaamkan AI wuxuu ku salaysan yahay xogta culimada Soomaaliyeed. Weydii su&apos;aashaada oo hel jawaab ku salaysan daliil.
-                  </p>
-                </div>
-
-                {/* Stats */}
-                <div className="flex items-center justify-center gap-6">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold gradient-text">138</p>
-                    <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Fatwa</p>
-                  </div>
-                  <div className="w-px h-8" style={{ background: "var(--border)" }} />
-                  <div className="text-center">
-                    <p className="text-2xl font-bold gradient-text">5+</p>
-                    <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Culimo</p>
-                  </div>
-                  <div className="w-px h-8" style={{ background: "var(--border)" }} />
-                  <div className="text-center">
-                    <p className="text-2xl font-bold gradient-text">AI</p>
-                    <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Gemini</p>
-                  </div>
-                </div>
-
-                {/* Example questions */}
-                <div className="grid grid-cols-2 gap-2 max-w-lg mx-auto">
-                  {EXAMPLES.map((ex, i) => (
-                    <button
-                      key={i}
-                      onClick={() => sendMessage(ex.q)}
-                      className="group text-left px-3.5 py-3 rounded-xl text-[12px] text-[var(--text-secondary)] transition-all duration-200 glass glass-hover"
-                      style={{ animationDelay: `${i * 0.08}s` }}
-                    >
-                      <span className="mr-1.5">{ex.icon}</span>
-                      <span className="group-hover:text-[var(--gold)] transition-colors line-clamp-2">{ex.q}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ) : (
-            /* ──────── CHAT MESSAGES ──────── */
-            <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
-              {messages.map((msg) => (
-                <div key={msg.id} className="animate-fade-up">
-                  {msg.role === "user" ? (
-                    /* User bubble */
-                    <div className="flex justify-end">
-                      <div className="max-w-[80%] px-4 py-3 rounded-2xl rounded-br-md text-sm" style={{ background: "rgba(212,168,83,0.12)", border: "1px solid rgba(212,168,83,0.15)", color: "var(--text)" }}>
-                        {msg.text}
-                      </div>
-                    </div>
-                  ) : (
-                    /* Agent bubble */
-                    <div className="flex gap-3">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-lg gradient-gold flex items-center justify-center mt-1 text-sm">☽</div>
-                      <div className="flex-1 min-w-0">
-                        <div className="rounded-2xl rounded-tl-md px-4 py-3 glass" style={{ maxWidth: "95%" }}>
-
-                          {/* Out of domain */}
-                          {msg.outOfDomain && (
-                            <div className="flex items-start gap-2">
-                              <span className="text-xl">🚫</span>
-                              <div>
-                                <p className="text-xs font-semibold text-red-400 mb-1">Domain ka baxsan</p>
-                                <p className="text-sm text-[var(--text-secondary)]">Qaybtan wali kuma jirto nidaamka. Hadda waxaan ka jawaabaa su&apos;aalaha Ramadaanka oo keliya.</p>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* No evidence */}
-                          {msg.noEvidence && (
-                            <div className="flex items-start gap-2">
-                              <span className="text-xl">📭</span>
-                              <div>
-                                <p className="text-xs font-semibold text-[var(--gold)] mb-1">Xog la&apos;aan</p>
-                                <p className="text-sm text-[var(--text-secondary)]">Su&apos;aashan xog sugan lagama hayo kaydka fataawada.</p>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Error */}
-                          {msg.error && (
-                            <div className="flex items-start gap-2">
-                              <span className="text-xl">⚠️</span>
-                              <div>
-                                <p className="text-sm text-red-400">{msg.error}</p>
-                                {msg.detail && <p className="text-[11px] text-[var(--text-muted)] mt-1">{msg.detail}</p>}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Success */}
-                          {msg.response && (
-                            <div>
-                              {msg.evidenceCount && (
-                                <div className="flex items-center gap-1.5 mb-3">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--green)]" />
-                                  <span className="text-[10px] text-[var(--green)] font-medium">{msg.evidenceCount} daliil la helay</span>
-                                </div>
-                              )}
-                              <FatwaBlock label="Xukunka" icon="⚖️" color="var(--gold)" content={msg.response.xukunka} />
-                              <FatwaBlock label="Faahfaahin" icon="📖" color="var(--green)" content={msg.response.faahfaahin} />
-                              <FatwaBlock label="Ikhtilaaf" icon="🔄" color="#60a5fa" content={msg.response.ikhtilaaf} />
-                              <FatwaBlock label="Gunaanad" icon="📝" color="#a78bfa" content={msg.response.gunaanad} />
-                              <FatwaBlock label="Tixraac" icon="🔗" color="var(--gold)" content={msg.response.tixraac} />
-                            </div>
-                          )}
-                        </div>
-
-                        <span className="text-[10px] text-[var(--text-muted)] mt-1.5 block pl-1">
-                          {new Date(msg.timestamp).toLocaleTimeString("so-SO", { hour: "2-digit", minute: "2-digit" })}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-
-              {loading && (
-                <div className="flex gap-3 animate-fade-up">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-lg gradient-gold flex items-center justify-center text-sm">☽</div>
-                  <div className="glass rounded-2xl rounded-tl-md">
-                    <TypingDots />
-                  </div>
-                </div>
-              )}
-
-              <div ref={chatEndRef} />
-            </div>
-          )}
-        </div>
-
-        {/* ──────── INPUT BAR ──────── */}
-        <div className="px-4 py-3" style={{ borderTop: "1px solid var(--border)" }}>
-          <div className="max-w-3xl mx-auto">
-            <div className="flex items-end gap-2 rounded-xl p-2 glass" style={{ border: loading ? "1px solid rgba(212,168,83,0.3)" : "1px solid var(--border)" }}>
-              <textarea
-                ref={textareaRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Su'aashaada halkan ku qor..."
-                rows={1}
-                maxLength={500}
-                disabled={loading}
-                className="flex-1 bg-transparent text-sm text-[var(--text)] placeholder-[var(--text-muted)] resize-none py-2 px-2 max-h-40"
+        <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">
+          {/* Logo */}
+          <div className="animate-fade-up" style={{ animationDelay: "0.1s" }}>
+            <div className="mx-auto mb-8 animate-pulse-ring rounded-2xl inline-block">
+              <Image
+                src="/assets/logo-white.png"
+                alt="Fatwa Agent"
+                width={220}
+                height={60}
+                className="drop-shadow-[0_0_30px_rgba(255,163,53,0.3)]"
+                priority
               />
-              <button
-                onClick={() => sendMessage()}
-                disabled={!input.trim() || loading}
-                className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200 disabled:opacity-30"
-                style={{
-                  background: input.trim() && !loading ? "var(--gold)" : "transparent",
-                  color: input.trim() && !loading ? "var(--bg-primary)" : "var(--text-muted)",
-                }}
-              >
-                {loading ? (
-                  <div className="w-4 h-4 rounded-full border-2 border-[var(--gold)] border-t-transparent animate-spin" />
-                ) : (
-                  <IconSend />
-                )}
-              </button>
             </div>
-            <p className="text-[10px] text-[var(--text-muted)] text-center mt-2">
-              Nidaamkan waa kaaliye oo ma beddeli karo fatwa culimada. Enter si aad u dirto.
-            </p>
+          </div>
+
+          <div className="animate-fade-up" style={{ animationDelay: "0.25s" }}>
+            <p className="text-xs font-semibold tracking-[0.3em] uppercase text-[var(--secondary-bright)] mb-4">Ramadan Fiqh AI Agent</p>
+          </div>
+
+          <h1 className="animate-fade-up text-5xl md:text-6xl font-black tracking-tight mb-6 text-balance" style={{ animationDelay: "0.35s", fontFamily: "'Playfair Display', serif" }}>
+            <span className="gradient-text-secondary">Su&apos;aashaada</span>{" "}
+            <span className="gradient-text-primary">Weydii</span>
+          </h1>
+
+          <p className="animate-fade-up text-base md:text-lg text-[var(--text-secondary)] max-w-xl mx-auto leading-relaxed mb-3 text-balance" style={{ animationDelay: "0.45s" }}>
+            Nidaam AI ah oo ku salaysan xogta culimada Soomaaliyeed. Weydii su&apos;aashaada — hel jawaab daliil ku salaysan.
+          </p>
+
+          <div className="animate-fade-up flex items-center justify-center gap-2 text-xs text-[var(--text-muted)] mb-10" style={{ animationDelay: "0.55s" }}>
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--green)] animate-pulse" />
+            Nidaamku waa shaqaynayaa — 138 fatwa diyaar ah
+          </div>
+
+          {/* CTA */}
+          <div className="animate-fade-up flex flex-col sm:flex-row items-center justify-center gap-4" style={{ animationDelay: "0.65s" }}>
+            <Link
+              href="/chat"
+              className="group relative inline-flex items-center justify-center gap-3 px-10 py-4 rounded-2xl text-base font-bold transition-all duration-300 hover:scale-[1.03] gradient-primary text-white glow-primary-strong"
+            >
+              <span>Bilow Weydiista</span>
+              <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </Link>
+            <a
+              href="#features"
+              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl text-sm font-medium text-[var(--text-secondary)] glass glass-hover transition-all duration-200"
+            >
+              Wax badan ka ogow
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m6 9 6 6 6-6"/></svg>
+            </a>
+          </div>
+
+          {/* Stats */}
+          <div className="animate-fade-up mt-16 inline-flex items-center gap-6 px-8 py-4 rounded-2xl glass" style={{ animationDelay: "0.8s" }}>
+            {[
+              { val: "138", label: "Fatwa", color: "var(--primary)" },
+              { val: "5+", label: "Culimo", color: "var(--secondary)" },
+              { val: "AI", label: "Gemini", color: "var(--primary)" },
+            ].map((s, i) => (
+              <div key={i} className="flex items-center gap-3">
+                {i > 0 && <div className="w-px h-8 bg-[var(--border)]" />}
+                <div className="text-center px-2">
+                  <p className="text-2xl font-bold" style={{ color: s.color }}>{s.val}</p>
+                  <p className="text-[9px] text-[var(--text-muted)] uppercase tracking-widest mt-0.5">{s.label}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
-      </main>
+
+        {/* Scroll indicator */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
+          <div className="w-5 h-8 rounded-full border border-[var(--border-hover)] flex items-start justify-center p-1">
+            <div className="w-1 h-2 rounded-full bg-[var(--primary)] animate-pulse" />
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ EXAMPLES ═══ */}
+      <section className="relative py-20 px-6 islamic-bg">
+        <div className="max-w-4xl mx-auto text-center">
+          <p className="text-xs font-semibold tracking-[0.25em] uppercase text-[var(--primary-dim)] mb-3">Tusaaleyaasha</p>
+          <h2 className="text-2xl md:text-3xl font-bold text-[var(--text)] mb-3" style={{ fontFamily: "'Playfair Display', serif" }}>Su&apos;aalaha Badanaa</h2>
+          <p className="text-sm text-[var(--text-muted)] mb-12 max-w-md mx-auto">Guji mid ka mid ah si aad isla markiiba u bilowdo wadahadal</p>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {EXAMPLES.map((ex, i) => (
+              <Link
+                key={i}
+                href={`/chat?q=${encodeURIComponent(ex.q)}`}
+                className="group relative p-5 rounded-2xl text-left transition-all duration-300 glass glass-primary animate-fade-up"
+                style={{ animationDelay: `${i * 0.08}s` }}
+              >
+                <div className="flex items-center gap-2.5 mb-2.5">
+                  <span className="text-lg">{ex.icon}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--primary-dim)]">{ex.label}</span>
+                </div>
+                <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed group-hover:text-[var(--text)] transition-colors line-clamp-2">
+                  {ex.q}
+                </p>
+                <div className="absolute bottom-3 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <svg className="w-4 h-4 text-[var(--primary)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ FEATURES ═══ */}
+      <section id="features" className="relative py-24 px-6">
+        <div className="absolute inset-0 gradient-radial pointer-events-none" />
+        <div className="max-w-4xl mx-auto relative z-10">
+          <div className="text-center mb-16">
+            <p className="text-xs font-semibold tracking-[0.25em] uppercase text-[var(--secondary-dim)] mb-3">Sida uu u shaqeeyo</p>
+            <h2 className="text-2xl md:text-3xl font-bold text-[var(--text)]" style={{ fontFamily: "'Playfair Display', serif" }}>Nidaam Caqli leh</h2>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            {FEATURES.map((f, i) => (
+              <div
+                key={i}
+                className="group p-6 rounded-2xl glass glass-hover transition-all duration-300 animate-fade-up"
+                style={{ animationDelay: `${i * 0.1}s` }}
+              >
+                <div
+                  className="w-12 h-12 rounded-xl flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition-transform"
+                  style={{ background: f.color === "var(--secondary)" ? "rgba(29,110,199,0.1)" : "rgba(255,163,53,0.1)" }}
+                >
+                  {f.icon}
+                </div>
+                <h3 className="text-sm font-bold text-[var(--text)] mb-2">{f.title}</h3>
+                <p className="text-[13px] text-[var(--text-muted)] leading-relaxed">{f.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ FLOW DIAGRAM ═══ */}
+      <section className="py-20 px-6 islamic-bg">
+        <div className="max-w-2xl mx-auto text-center">
+          <p className="text-xs font-semibold tracking-[0.25em] uppercase text-[var(--primary-dim)] mb-3">Qaab-dhismeedka</p>
+          <h2 className="text-2xl font-bold text-[var(--text)] mb-12" style={{ fontFamily: "'Playfair Display', serif" }}>Socodka Jawaabta</h2>
+
+          <div className="space-y-0">
+            {[
+              { step: "01", label: "Su'aashaada", icon: "💬", color: "var(--primary)" },
+              { step: "02", label: "Domain Detection", icon: "🔒", color: "var(--secondary)" },
+              { step: "03", label: "Raadinta Xogta (Embeddings)", icon: "🔍", color: "var(--primary)" },
+              { step: "04", label: "Gemini AI Reasoning", icon: "🧠", color: "var(--secondary)" },
+              { step: "05", label: "Jawaab Qaab-dhismeed leh", icon: "✨", color: "var(--primary)" },
+            ].map((s, i) => (
+              <div key={i} className="flex flex-col items-center animate-fade-up" style={{ animationDelay: `${i * 0.1}s` }}>
+                <div className="flex items-center gap-3 px-5 py-3 rounded-xl glass" style={{ minWidth: 280 }}>
+                  <span className="text-lg">{s.icon}</span>
+                  <div className="text-left">
+                    <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: s.color }}>{s.step}</p>
+                    <p className="text-sm text-[var(--text)]">{s.label}</p>
+                  </div>
+                </div>
+                {i < 4 && (
+                  <div className="w-px h-6" style={{ background: "var(--border-hover)" }} />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ SCHOLARS ═══ */}
+      <section className="py-20 px-6">
+        <div className="max-w-3xl mx-auto text-center">
+          <p className="text-xs font-semibold tracking-[0.25em] uppercase text-[var(--secondary-dim)] mb-3">Culimada</p>
+          <h2 className="text-2xl font-bold text-[var(--text)] mb-10" style={{ fontFamily: "'Playfair Display', serif" }}>Xogta Waxaa La Soo Qaaday</h2>
+
+          <div className="grid grid-cols-3 gap-4">
+            {SCHOLARS.map((s, i) => (
+              <div key={i} className="p-5 rounded-2xl glass animate-fade-up text-center" style={{ animationDelay: `${i * 0.1}s` }}>
+                <div className="w-14 h-14 mx-auto rounded-full gradient-secondary-soft flex items-center justify-center text-2xl mb-3">👤</div>
+                <p className="text-sm font-semibold text-[var(--text)] mb-1">{s.name}</p>
+                <p className="text-2xl font-bold gradient-text-primary">{s.count}</p>
+                <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">fatwa</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ FINAL CTA ═══ */}
+      <section className="py-24 px-6 relative overflow-hidden">
+        <div className="absolute inset-0 hero-glow pointer-events-none" />
+        <div className="max-w-xl mx-auto text-center relative z-10">
+          <Image
+            src="/assets/logo-white.png"
+            alt="Fatwa Agent"
+            width={160}
+            height={44}
+            className="mx-auto mb-8 drop-shadow-[0_0_20px_rgba(255,163,53,0.2)]"
+          />
+          <h2 className="text-3xl font-bold gradient-text mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>Diyaar ma tahay?</h2>
+          <p className="text-sm text-[var(--text-muted)] mb-8">Bilow wadahadal su&apos;aalaha Fiqhiga Ramadaanka oo hel jawaab daliil ku salaysan.</p>
+          <Link
+            href="/chat"
+            className="group inline-flex items-center gap-3 px-10 py-4 rounded-2xl text-base font-bold transition-all duration-300 hover:scale-[1.03] gradient-primary text-white glow-primary-strong"
+          >
+            Bilow Hadda
+            <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </Link>
+        </div>
+      </section>
+
+      {/* ═══ FOOTER ═══ */}
+      <footer className="py-8 px-6 border-t border-[var(--border)]">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Image src="/assets/logo-white.png" alt="Fatwa" width={80} height={22} />
+          </div>
+          <p className="text-[10px] text-[var(--text-muted)]">
+            Nidaamkan waa kaaliye — ma beddeli karo fatwa culimada.
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }

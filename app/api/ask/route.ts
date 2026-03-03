@@ -79,8 +79,10 @@ export async function POST(req: NextRequest) {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
+    // Use model from env (confirmed available via ListModels)
+    const modelId = process.env.GEMINI_MODEL || "gemini-2.5-flash-lite";
     const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash-latest",
+      model: modelId,
       generationConfig: {
         temperature: 0.1,
         maxOutputTokens: 2048,
@@ -96,10 +98,21 @@ export async function POST(req: NextRequest) {
     // Step 6: Format and return
     const formatted = formatFatwaResponse(rawText);
 
+    const tixraacList = formatted.tixraac
+      ? formatted.tixraac.split("\n").map((t) => t.trim()).filter(Boolean)
+      : [];
+
     return NextResponse.json({
       success: true,
       question,
-      response: formatted,
+      answer: rawText,
+      fatwa: {
+        xukun: formatted.xukunka,
+        faahfaahin: formatted.faahfaahin,
+        ikhtilaf: formatted.ikhtilaaf,
+        gunaanad: formatted.gunaanad,
+        tixraac: tixraacList,
+      },
       evidenceCount: evidence.length,
     });
   } catch (err) {

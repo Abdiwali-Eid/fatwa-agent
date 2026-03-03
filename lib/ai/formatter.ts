@@ -18,7 +18,12 @@ function extractSection(text: string, heading: string): string {
     "i"
   );
   const match = text.match(regex);
-  return match ? match[1].trim() : "";
+  if (!match) return "";
+  return match[1]
+    .replace(/\*{1,2}([^*]+)\*{1,2}/g, "$1") // remove **bold** / *italic*
+    .replace(/^\s*[\*\-]\s+/gm, "• ")         // replace "* item" with "• item"
+    .replace(/\*+/g, "")                       // strip any remaining asterisks
+    .trim();
 }
 
 export function formatFatwaResponse(rawText: string): FatwaResponse {

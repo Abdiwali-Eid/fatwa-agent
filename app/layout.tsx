@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: "Fatwa Agent — Su'aalaha Ramadaanka",
   description:
     "Nidaam AI ah oo ka jawaaba su'aalaha Fiqhiga Ramadaanka, ku salaysan xogta culimada Soomaaliyeed.",
+  icons: { icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☽</text></svg>" },
 };
 
 export default function RootLayout({
@@ -18,7 +19,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased min-h-screen">{children}</body>
     </html>
   );
 }

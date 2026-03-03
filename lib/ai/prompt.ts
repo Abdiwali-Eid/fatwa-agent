@@ -1,4 +1,4 @@
-f/**
+/**
  * Prompt Builder
  * Assembles the final prompt sent to Gemini using CLAUDE_RULES.md contract.
  *

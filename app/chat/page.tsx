@@ -20,17 +20,52 @@ interface Msg {
   time: string;
 }
 
+type ChatTheme = "system" | "light" | "dark";
+
+const CHAT_THEME_STORAGE_KEY = "fatwa-chat-theme";
+
+const CHAT_THEME_VARS: Record<Exclude<ChatTheme, "system">, Record<string, string>> = {
+  dark: {
+    "--bg-deep": "#05080f",
+    "--bg-primary": "#080c18",
+    "--bg-secondary": "#0c1224",
+    "--bg-sidebar": "#070b16",
+    "--bg-card": "rgba(255,255,255,0.025)",
+    "--bg-card-hover": "rgba(255,255,255,0.055)",
+    "--bg-input": "rgba(255,255,255,0.035)",
+    "--text": "#eaeef6",
+    "--text-secondary": "#94a3b8",
+    "--text-muted": "#64748b",
+    "--border": "rgba(148,163,184,0.2)",
+    "--border-secondary": "rgba(148,163,184,0.25)",
+  },
+  light: {
+    "--bg-deep": "#f7f9fc",
+    "--bg-primary": "#ffffff",
+    "--bg-secondary": "#eef3fb",
+    "--bg-sidebar": "#f2f6fd",
+    "--bg-card": "rgba(15,23,42,0.03)",
+    "--bg-card-hover": "rgba(15,23,42,0.08)",
+    "--bg-input": "rgba(15,23,42,0.04)",
+    "--text": "#0f172a",
+    "--text-secondary": "#334155",
+    "--text-muted": "#64748b",
+    "--border": "rgba(15,23,42,0.12)",
+    "--border-secondary": "rgba(15,23,42,0.15)",
+  },
+};
+
 function now() {
   return new Date().toLocaleTimeString("so-SO", { hour: "2-digit", minute: "2-digit" });
 }
 
 const QUICK = [
 
-  "Qof sooman dhiig ma iska qaadi karaa?",
-  "Fidyada meel kale qof jira ma u diri karaa?",
+  
+  "Qofka ictikaafka ku jira cunto IWM banaanka ma u doonan kara?",
   "Waxyaabaha madaxa looga duro dadka timuhu kaa daataan sida PRP-da soonka wax ma yeelayaan?",
   "Liqidda xaakadu soonka ma jabisaa?",
-  "qofka ictikaafka ku jira cunto iwm banaanka ma u doonan kara?",
+
   
 ];
 
@@ -68,14 +103,48 @@ function getYouTubeStartSeconds(url: string): number | null {
   }
 }
 
+function getTelegramEmbedUrl(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.toLowerCase();
+    if (!host.includes("t.me") && !host.includes("telegram.me")) return null;
+
+    const parts = parsed.pathname.split("/").filter(Boolean);
+    if (parts.length < 2) return null;
+
+    const [first, second, third] = parts;
+    let channel = first;
+    let postId = second;
+
+    // Handles /s/channel/123 format.
+    if (first === "s") {
+      if (!second || !third) return null;
+      channel = second;
+      postId = third;
+    }
+
+    if (!/^\d+$/.test(postId)) return null;
+    return `https://t.me/${channel}/${postId}?embed=1`;
+  } catch {
+    return null;
+  }
+}
+
 /** Parse tixraac string — could be "Sheikh name - url" or just a url */
-function parseTixraac(raw: string): { label: string; url: string | null; youtubeId: string | null; startSeconds: number | null } {
+function parseTixraac(raw: string): {
+  label: string;
+  url: string | null;
+  youtubeId: string | null;
+  startSeconds: number | null;
+  telegramEmbedUrl: string | null;
+} {
   const urlMatch = raw.match(/(https?:\/\/[^\s]+)/);
   const url = urlMatch ? urlMatch[1] : null;
   const label = raw.replace(urlMatch?.[0] ?? "", "").replace(/[-–—|]+$/, "").trim() || "Tixraac";
   const youtubeId = url ? getYouTubeId(url) : null;
   const startSeconds = url ? getYouTubeStartSeconds(url) : null;
-  return { label, url, youtubeId, startSeconds };
+  const telegramEmbedUrl = url ? getTelegramEmbedUrl(url) : null;
+  return { label, url, youtubeId, startSeconds, telegramEmbedUrl };
 }
 
 function YouTubeCard({ label, url, videoId, startSeconds }: { label: string; url: string; videoId: string; startSeconds: number | null }) {
@@ -134,6 +203,76 @@ function YouTubeCard({ label, url, videoId, startSeconds }: { label: string; url
           className="flex-shrink-0 ml-2 text-[10px] font-medium px-2 py-1 rounded-md transition-colors"
           style={{ color: "var(--secondary)", background: "rgba(29,110,199,0.1)" }}
           onClick={(e) => e.stopPropagation()}>
+          Fur
+        </a>
+      </div>
+    </div>
+  );
+}
+
+function TelegramCard({
+  label,
+  url,
+  embedUrl,
+}: {
+  label: string;
+  url: string;
+  embedUrl: string | null;
+}) {
+  const [showEmbed, setShowEmbed] = useState(false);
+
+  return (
+    <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border-secondary)" }}>
+      {showEmbed && embedUrl ? (
+        <iframe
+          src={embedUrl}
+          allow="clipboard-write; web-share"
+          className="w-full"
+          style={{ height: 320, border: "none" }}
+        />
+      ) : (
+        <button
+          onClick={() => embedUrl && setShowEmbed(true)}
+          className="w-full text-left px-3 py-3.5 transition-colors"
+          style={{ background: "rgba(0,136,204,0.12)", color: "var(--text)" }}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-[12px] font-semibold truncate">{label || "Telegram"}</p>
+              <p className="text-[11px] truncate" style={{ color: "var(--text-muted)" }}>
+                {embedUrl ? "Riix si aad u furto embed-ka Telegram" : "Telegram link"}
+              </p>
+            </div>
+            {embedUrl && (
+              <span
+                className="text-[10px] font-medium px-2 py-1 rounded-md"
+                style={{ color: "var(--secondary)", background: "rgba(29,110,199,0.1)" }}
+              >
+                Embed
+              </span>
+            )}
+          </div>
+        </button>
+      )}
+
+      <div
+        className="flex items-center justify-between px-3 py-2.5"
+        style={{ background: "rgba(29,110,199,0.08)", borderTop: "1px solid var(--border)" }}
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="#0088CC">
+            <path d="M9.04 15.51 8.67 20.2c.53 0 .76-.23 1.04-.5l2.5-2.39 5.18 3.79c.95.52 1.62.25 1.88-.88l3.41-15.96v-.01c.3-1.39-.5-1.93-1.42-1.59L1.53 10.26c-1.35.52-1.33 1.27-.23 1.61l5.03 1.57L18 6.14c.55-.33 1.05-.15.64.18" />
+          </svg>
+          <span className="text-[12px] font-medium truncate" style={{ color: "var(--text)" }}>{label || "Telegram"}</span>
+        </div>
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex-shrink-0 ml-2 text-[10px] font-medium px-2 py-1 rounded-md transition-colors"
+          style={{ color: "var(--secondary)", background: "rgba(29,110,199,0.1)" }}
+          onClick={(e) => e.stopPropagation()}
+        >
           Fur
         </a>
       </div>
@@ -216,6 +355,8 @@ function FatwaCard({ fatwa }: { fatwa: FatwaBlock }) {
           {tixraacParsed.map((t, i) =>
             t.youtubeId && t.url ? (
               <YouTubeCard key={i} label={t.label} url={t.url} videoId={t.youtubeId} startSeconds={t.startSeconds} />
+            ) : t.url && (t.url.includes("t.me") || t.url.includes("telegram.me")) ? (
+              <TelegramCard key={i} label={t.label} url={t.url} embedUrl={t.telegramEmbedUrl} />
             ) : t.url ? (
               <a key={i} href={t.url} target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all duration-200 glass glass-secondary"
@@ -242,6 +383,8 @@ function ChatInner() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [sideOpen, setSideOpen] = useState(false);
+  const [theme, setTheme] = useState<ChatTheme>("system");
+  const [systemPrefersDark, setSystemPrefersDark] = useState(true);
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const autoSent = useRef(false);
@@ -296,10 +439,54 @@ function ChatInner() {
     return () => media.removeEventListener("change", applySidebarMode);
   }, []);
 
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const applySystem = () => setSystemPrefersDark(media.matches);
+
+    applySystem();
+    media.addEventListener("change", applySystem);
+
+    const saved = window.localStorage.getItem(CHAT_THEME_STORAGE_KEY);
+    if (saved === "system" || saved === "light" || saved === "dark") {
+      setTheme(saved);
+    }
+
+    return () => media.removeEventListener("change", applySystem);
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(CHAT_THEME_STORAGE_KEY, theme);
+  }, [theme]);
+
   useEffect(() => { inputRef.current?.focus(); }, [loading]);
 
+  const resolvedTheme: Exclude<ChatTheme, "system"> =
+    theme === "system" ? (systemPrefersDark ? "dark" : "light") : theme;
+  const chatThemeVars = CHAT_THEME_VARS[resolvedTheme] as Record<string, string>;
+
+  const topBarBg = resolvedTheme === "dark" ? "rgba(5,8,15,0.85)" : "rgba(255,255,255,0.9)";
+  const inputBarBg = resolvedTheme === "dark" ? "rgba(5,8,15,0.9)" : "rgba(255,255,255,0.92)";
+
+  const ThemeChip = ({
+    mode,
+    label,
+  }: {
+    mode: ChatTheme;
+    label: string;
+  }) => (
+    <button
+      onClick={() => setTheme(mode)}
+      className={`px-2.5 py-1 rounded-md text-[10px] font-medium transition-colors ${
+        theme === mode ? "text-white" : "text-[var(--text-muted)]"
+      }`}
+      style={theme === mode ? { background: "var(--secondary)" } : { background: "transparent" }}
+    >
+      {label}
+    </button>
+  );
+
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: "var(--bg-deep)" }}>
+    <div className="flex h-screen overflow-hidden" style={{ ...chatThemeVars, background: "var(--bg-deep)" }}>
       {/* ════ SIDEBAR ════ */}
       <aside
         className={`${sideOpen ? "w-72" : "w-0"} flex-shrink-0 transition-all duration-300 overflow-hidden border-r border-[var(--border)]`}
@@ -374,7 +561,7 @@ function ChatInner() {
       {/* ════ MAIN ════ */}
       <main className="flex-1 flex flex-col min-w-0 relative">
         {/* Topbar */}
-        <header className="flex items-center gap-3 px-5 h-16 border-b border-[var(--border)] flex-shrink-0" style={{ background: "rgba(5,8,15,0.85)", backdropFilter: "blur(16px)" }}>
+        <header className="flex items-center gap-3 px-5 h-16 border-b border-[var(--border)] flex-shrink-0" style={{ background: topBarBg, backdropFilter: "blur(16px)" }}>
           <button onClick={() => setSideOpen(!sideOpen)} className="p-2 rounded-lg glass-hover transition-colors">
             <svg className="w-5 h-5 text-[var(--text-muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 12h18M3 6h18M3 18h18" strokeLinecap="round"/></svg>
           </button>
@@ -388,6 +575,11 @@ function ChatInner() {
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full glass text-[10px] text-[var(--green)]">
             <span className="w-1.5 h-1.5 rounded-full bg-[var(--green)] animate-pulse" />
             Online
+          </div>
+          <div className="ml-2 flex items-center gap-1 p-1 rounded-lg border border-[var(--border)]" style={{ background: "var(--bg-card)" }}>
+            <ThemeChip mode="system" label="System" />
+            <ThemeChip mode="light" label="Light" />
+            <ThemeChip mode="dark" label="Dark" />
           </div>
         </header>
 
@@ -470,7 +662,7 @@ function ChatInner() {
         </div>
 
         {/* Input bar */}
-        <div className="flex-shrink-0 border-t border-[var(--border)] px-5 py-4" style={{ background: "rgba(5,8,15,0.9)", backdropFilter: "blur(16px)" }}>
+        <div className="flex-shrink-0 border-t border-[var(--border)] px-5 py-4" style={{ background: inputBarBg, backdropFilter: "blur(16px)" }}>
           <div className="max-w-3xl mx-auto">
             <div className="flex items-end gap-3 glass-strong rounded-2xl px-4 py-3 transition-all duration-200 focus-within:border-[var(--border-primary)]">
               <textarea

@@ -623,20 +623,20 @@ function ChatInner() {
         <div className="flex-1 overflow-y-auto">
           <div className="max-w-3xl mx-auto px-4 sm:px-5 py-4 sm:py-6 h-full">
             {msgs.length === 0 && !loading && (
-              <div className="flex flex-col items-center justify-between min-h-full text-center animate-fade-in">
-                <div className="pt-2 sm:pt-8">
+              <div className="flex flex-col items-center text-center animate-fade-in pt-1 sm:pt-8 sm:min-h-[50vh] sm:justify-center">
+                <div className="w-full">
                   <Image
                     src={logoSrc}
                     alt="Fatwa Agent"
                     width={180}
                     height={50}
-                    className="mb-5 sm:mb-8 animate-float drop-shadow-[0_0_25px_rgba(255,163,53,0.2)]"
+                    className="mx-auto mb-3 sm:mb-8 animate-float drop-shadow-[0_0_25px_rgba(255,163,53,0.2)]"
                   />
                   <h2 className="text-xl font-bold text-[var(--text)] mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>Assalaamu Calaykum</h2>
                   <p className="text-sm text-[var(--text-muted)] max-w-sm">Waxaan ahay Fatwa Agent — su&apos;aashaada ku saabsan Axkaamta Soonka ii weydii.</p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-lg mt-6 sm:mt-10 pb-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-lg mt-5 sm:mt-10 pb-2 sm:pb-0">
                   {QUICK.map((q, i) => (
                     <button
                       key={i}

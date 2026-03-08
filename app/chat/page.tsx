@@ -38,6 +38,16 @@ const CHAT_THEME_VARS: Record<Exclude<ChatTheme, "system">, Record<string, strin
     "--text-muted": "#64748b",
     "--border": "rgba(148,163,184,0.2)",
     "--border-secondary": "rgba(148,163,184,0.25)",
+    "--glass-bg": "rgba(255,255,255,0.03)",
+    "--glass-border": "rgba(148,163,184,0.22)",
+    "--glass-strong-bg": "rgba(255,255,255,0.05)",
+    "--glass-strong-border": "rgba(148,163,184,0.28)",
+    "--glass-hover-bg": "rgba(255,255,255,0.07)",
+    "--glass-hover-border": "rgba(148,163,184,0.3)",
+    "--glass-primary-hover-bg": "rgba(255,163,53,0.08)",
+    "--glass-primary-hover-border": "rgba(255,163,53,0.3)",
+    "--glass-secondary-hover-bg": "rgba(29,110,199,0.08)",
+    "--glass-secondary-hover-border": "rgba(29,110,199,0.3)",
   },
   light: {
     "--bg-deep": "#f7f9fc",
@@ -52,6 +62,16 @@ const CHAT_THEME_VARS: Record<Exclude<ChatTheme, "system">, Record<string, strin
     "--text-muted": "#64748b",
     "--border": "rgba(15,23,42,0.12)",
     "--border-secondary": "rgba(15,23,42,0.15)",
+    "--glass-bg": "rgba(15,23,42,0.03)",
+    "--glass-border": "rgba(15,23,42,0.14)",
+    "--glass-strong-bg": "rgba(255,255,255,0.92)",
+    "--glass-strong-border": "rgba(15,23,42,0.18)",
+    "--glass-hover-bg": "rgba(15,23,42,0.06)",
+    "--glass-hover-border": "rgba(15,23,42,0.24)",
+    "--glass-primary-hover-bg": "rgba(255,163,53,0.16)",
+    "--glass-primary-hover-border": "rgba(255,163,53,0.42)",
+    "--glass-secondary-hover-bg": "rgba(29,110,199,0.14)",
+    "--glass-secondary-hover-border": "rgba(29,110,199,0.36)",
   },
 };
 
@@ -643,8 +663,19 @@ function ChatInner() {
                           ? "gradient-primary text-white rounded-br-md"
                           : "glass rounded-bl-md"
                       }`}
+                      style={
+                        m.role === "agent"
+                          ? {
+                              background: "var(--bg-card-hover)",
+                              borderColor: "var(--border-secondary)",
+                              color: "var(--text)",
+                            }
+                          : undefined
+                      }
                     >
-                      <p className="text-[13.5px] leading-[1.75] whitespace-pre-wrap">{m.text}</p>
+                      <p className="text-[13.5px] leading-[1.75] whitespace-pre-wrap" style={{ color: m.role === "agent" ? "var(--text)" : undefined }}>
+                        {m.text}
+                      </p>
                     </div>
                   )}
                   {m.fatwa && m.fatwa.xukun && <FatwaCard fatwa={m.fatwa} />}
@@ -679,7 +710,10 @@ function ChatInner() {
         {/* Input bar */}
         <div className="flex-shrink-0 border-t border-[var(--border)] px-5 py-4" style={{ background: inputBarBg, backdropFilter: "blur(16px)" }}>
           <div className="max-w-3xl mx-auto">
-            <div className="flex items-end gap-3 glass-strong rounded-2xl px-4 py-3 transition-all duration-200 focus-within:border-[var(--border-primary)]">
+            <div
+              className="flex items-end gap-3 glass-strong rounded-2xl px-4 py-3 transition-all duration-200 focus-within:border-[var(--border-primary)]"
+              style={resolvedTheme === "light" ? { boxShadow: "0 8px 24px rgba(15,23,42,0.06)" } : undefined}
+            >
               <textarea
                 ref={inputRef}
                 rows={1}

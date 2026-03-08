@@ -100,28 +100,28 @@ textarea:focus, input:focus, button:focus-visible { outline: none; }
 
 /* ─── Glass ──────────────────────────── */
 .glass {
-  background: rgba(255,255,255,0.02);
+  background: var(--glass-bg, rgba(255,255,255,0.02));
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border, var(--border));
 }
 .glass-strong {
-  background: rgba(255,255,255,0.04);
+  background: var(--glass-strong-bg, rgba(255,255,255,0.04));
   backdrop-filter: blur(40px);
   -webkit-backdrop-filter: blur(40px);
-  border: 1px solid var(--border-hover);
+  border: 1px solid var(--glass-strong-border, var(--border-hover));
 }
 .glass-hover:hover {
-  background: rgba(255,255,255,0.06);
-  border-color: var(--border-hover);
+  background: var(--glass-hover-bg, rgba(255,255,255,0.06));
+  border-color: var(--glass-hover-border, var(--border-hover));
 }
 .glass-primary:hover {
-  border-color: rgba(255,163,53,0.25);
-  background: rgba(255,163,53,0.04);
+  border-color: var(--glass-primary-hover-border, rgba(255,163,53,0.25));
+  background: var(--glass-primary-hover-bg, rgba(255,163,53,0.04));
 }
 .glass-secondary:hover {
-  border-color: rgba(29,110,199,0.25);
-  background: rgba(29,110,199,0.04);
+  border-color: var(--glass-secondary-hover-border, rgba(29,110,199,0.25));
+  background: var(--glass-secondary-hover-bg, rgba(29,110,199,0.04));
 }
 
 /* ─── Gradients ─────────────────────── */
